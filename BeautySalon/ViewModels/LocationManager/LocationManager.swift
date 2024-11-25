@@ -17,6 +17,8 @@ final class LocationManager: NSObject, ObservableObject, CLLocationManagerDelega
     @Published var locationError: Error?
     @Published var isUpdateLocation: Bool = false
     
+    var hello: String = "sdsdsds"
+    
     override init() {
         super.init()
         locationManager.delegate = self
