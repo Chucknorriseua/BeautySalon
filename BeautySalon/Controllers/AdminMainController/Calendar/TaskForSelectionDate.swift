@@ -25,7 +25,7 @@ struct TasksForSelectedDate: View {
                     VStack(alignment: .leading, spacing: 20) {
                         HStack {
                             Image(systemName: "person.circle.fill")
-                            Text(task.taskTitle)
+                            Text("\(task.nameCurrent)")
                                 .font(.system(size: 26, weight: .bold))
                         }.padding(.leading, 30)
                         
@@ -45,6 +45,20 @@ struct TasksForSelectedDate: View {
                     Spacer()
                 }.frame(width: UIScreen.main.bounds.width - 20, height: 160)
                     .background(task.tinColor, in: .rect(cornerRadius: 44))
+                    .overlay(alignment: .topTrailing) {
+                        Button {
+                            Task {
+                                await viewModel.removeSheduleCurrentMaster(shedule: task, clientID: masterModel.masterID)
+                            }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(Color.white.opacity(0.8))
+                                .font(.system(size: 28))
+                              
+                        }.padding(.trailing, 10)
+                            .padding(.top, 12)
+
+                    }
                 
             }
             
@@ -56,8 +70,4 @@ struct TasksForSelectedDate: View {
         formatter.dateFormat = "  HH : mm"
         return formatter.string(from: date)
     }
-}
-
-#Preview {
-    TasksForSelectedDate(viewModel: Admin_CalendarViewModel.shared, masterModel: MasterModel(id: "", masterID: "", name: "", email: "", phone: "", description: ""), currentDate: Date())
 }

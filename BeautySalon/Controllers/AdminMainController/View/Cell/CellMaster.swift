@@ -10,54 +10,65 @@ import SDWebImageSwiftUI
 
 struct CellMaster: View {
     
-    @State var masterAll: MasterModel
+    @State var masterModel: MasterModel? = nil
     
     var body: some View {
-        
-        VStack(alignment: .center) {
-            HStack(alignment: .center, spacing: 0) {
-                VStack(alignment: .leading, spacing: 8) {
+        GeometryReader { geometry in
+            HStack {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(masterModel?.name ?? "no name")
+                        .font(.system(size: 24, weight: .heavy))
+                        .padding(.leading, 14)
                     
-                    Text(masterAll.name)
-                    Text("phone:  \(masterAll.phone)")
-                    Text("email:  \(masterAll.email)")
+                    HStack {
+                        Image(systemName: "phone.circle.fill")
+                            .font(.system(size: 22))
+                        Text(masterModel?.phone ?? "no phone")
+                    }.onTapGesture {
+                        let phoneNumber = "tel://" + (masterModel?.phone ?? "no phone")
+                        if let url = URL(string: phoneNumber) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                    HStack {
+                        Image(systemName: "envelope.fill")
+                            .font(.system(size: 20))
+                        Text(masterModel?.email ?? "")
+                    }
                     
-                }.frame(width: 280, alignment: .leading)
-                .foregroundStyle(Color.white)
-                .font(.system(size: 22, weight: .bold))
+                }.padding(.leading)
+                    .foregroundStyle(Color.white.opacity(0.92))
+                    .lineLimit(2)
                 
-                if let url = URL(string: masterAll.image) {
+                Spacer()
+                
+                
+                if let url = URL(string: masterModel?.image ?? "" ) {
                     
-                 WebImage(url: url)
+                    WebImage(url: url)
                         .resizable()
+                        .indicator(.activity)
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 90, height: 90)
-                        .clipShape(.rect(cornerRadius: 12))
-                        .padding(.bottom, 60)
+                        .frame(width: geometry.size.width * 0.3,
+                               height: geometry.size.height * 0.6)
+                        .clipShape(Circle())
+                        .padding(.trailing, 4)
                     
                 } else {
                     Image("ab3")
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 90, height: 90)
-                        .clipShape(.rect(cornerRadius: 12))
-                        .padding(.bottom, 60)
+                        .frame(width: geometry.size.width * 0.3,
+                               height: geometry.size.height * 0.6)
+                        .clipShape(Circle())
+                        .padding(.trailing, 4)
                 }
-
-            }
-            
-        }.frame(width: 380, height: 160)
-            .background(.ultraThinMaterial.opacity(0.7), in: .rect(topLeadingRadius: 44, bottomTrailingRadius: 76))
-            .overlay(alignment: .bottom) {
-            
-                    Text("__")
-                        .foregroundStyle(Color.white)
-                        .font(.title.bold())
-                
-            }
+            }.frame(height: geometry.size.height * 0.7)
+                .background(Color.init(hex: "#3e5b47").opacity(0.7), in: .rect(cornerRadius: 36))
+                .padding(.leading, 5)
+                .padding(.trailing, 5)
+        }
+        .frame(height: 200)
+        .padding(.vertical, -26)
     }
-}
-
-#Preview {
-    CellMaster(masterAll: MasterModel(id: "", name: "", email: "", phone: "", image: ""))
 }

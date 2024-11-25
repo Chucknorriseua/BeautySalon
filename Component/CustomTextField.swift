@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-@available(iOS 16.0, *)
 struct CustomTextField: View {
     
     var text: Binding<String>
@@ -22,12 +21,15 @@ struct CustomTextField: View {
             if title == "Password" && !showPassword {
                 SecureField(text: text) {
                     Text(title)
+                        .monospaced()
                         .foregroundStyle(.white.opacity(0.5))
                         .fontWeight(.semibold)
+                        .contentTransition(.numericText())
                 }
             } else {
                 TextField(text: text) {
                     Text(title)
+                        .monospaced()
                         .foregroundStyle(.white.opacity(0.5))
                         .fontWeight(.semibold)
                 }
@@ -35,8 +37,8 @@ struct CustomTextField: View {
         }
         .foregroundStyle(.white)
         .padding(.leading)
-        .frame(width: UIScreen.main.bounds.width - 20, height: 50)
-        .background(Color(hex: "#21292F"), in: RoundedRectangle(cornerRadius: 10))
+        .frame(width: UIScreen.main.bounds.width - 20, height: 60)
+        .background(Color(hex: "#21292F"), in: RoundedRectangle(cornerRadius: 24))
         .overlay(alignment: .trailing) {
             if title == "Password" {
                 Button(action: {
@@ -45,15 +47,11 @@ struct CustomTextField: View {
                     }
                 }, label: {
                     Image(systemName: showPassword ? "eye.fill" : "eye.slash.fill")
-                        .foregroundStyle(Color(hex: "F3E3CE"))
+                        .foregroundStyle(Color.init(hex: "F3E3CE"))
+                        .font(.system(size: 22))
                         .padding(.trailing)
                 })
             }
         }
     }
-}
-@available(iOS 16.0, *)
-#Preview {
-    CustomTextField(text: .constant(""), title: "Password", width: UIScreen.main.bounds.width - 30, showPassword: .constant(false))
-    
 }

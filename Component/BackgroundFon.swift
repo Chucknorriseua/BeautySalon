@@ -1,5 +1,5 @@
 //
-//  CustomFrameModitifire.swift
+//  BackgroundFon.swift
 //  BeautyMasters
 //
 //  Created by Евгений Полтавец on 17/08/2024.
@@ -24,6 +24,3 @@ extension View {
         self.modifier(BackgroundFon())
     }
 }
-
-// "#c1dbea"
-//

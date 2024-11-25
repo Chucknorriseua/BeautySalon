@@ -9,27 +9,26 @@ import SwiftUI
 
 struct ShedulMasterHeader: View {
     
-    @ObservedObject var viewModel: CalendarViewModel
-    @Environment(\.dismiss) var dismiss
+    @ObservedObject var masterCalendarViewModel: MasterCalendarViewModel
     
     var body: some View {
         HStack {
             VStack {
                 HStack {
-                    Text(viewModel.currentDate.format("MMMM"))
-                    Text(viewModel.currentDate.format("YYYY"))
+                    Text(masterCalendarViewModel.currentDate.format("MMMM"))
+                    Text(masterCalendarViewModel.currentDate.format("YYYY"))
                 }
                 .foregroundStyle(Color.yellow)
                 .font(.title.bold())
                 
-                Text(viewModel.currentDate.formatted(date: .complete, time: .omitted))
+                Text(masterCalendarViewModel.currentDate.formatted(date: .complete, time: .omitted))
                     .foregroundStyle(Color.white)
                     .font(.callout)
                 
-                TabView(selection: $viewModel.currentWeekIndex) {
-                    ForEach(viewModel.weekSlider.indices, id:\.self) { index in
-                        let week = viewModel.weekSlider[index]
-                        WeekView(week: week, currentDate: $viewModel.currentDate)
+                TabView(selection: $masterCalendarViewModel.currentWeekIndex) {
+                    ForEach(masterCalendarViewModel.weekSlider.indices, id:\.self) { index in
+                        let week = masterCalendarViewModel.weekSlider[index]
+                        MasterWeekView(week: week, currentDate: $masterCalendarViewModel.currentDate)
                             .padding(.horizontal, 15)
                             .tag(index)
                     }
@@ -38,20 +37,16 @@ struct ShedulMasterHeader: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .frame(height: 78)
             }
-            .padding(15)
+            .padding(.bottom, 14)
             .hSpace(.leading)
             .padding(.trailing, 8)
-            .onChange(of: viewModel.currentWeekIndex) { new in
-                if new == 0 || new == (viewModel.weekSlider.count - 1) {
-                    viewModel.createWeek = true
+            .onChange(of: masterCalendarViewModel.currentWeekIndex) {_, new in
+                if new == 0 || new == (masterCalendarViewModel.weekSlider.count - 1) {
+                    masterCalendarViewModel.createWeek = true
                     
                 }
-                viewModel.paginationWeek()
+                masterCalendarViewModel.paginationWeek()
             }
         }
     }
 }
-
-#Preview(body: {
-    ShedulMasterHeader(viewModel: CalendarViewModel.shared)
-})

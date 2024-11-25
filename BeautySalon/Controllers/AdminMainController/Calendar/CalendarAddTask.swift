@@ -36,19 +36,14 @@ struct CalendarAddTask: View {
                 
                 VStack(alignment: .leading) {
                     
-                    TextField("Name Client", text: $taskTitle)
-                        .font(.system(size: 16, weight: .semibold))
-                        .padding(.vertical, 14)
+                    SettingsButton(text: $taskTitle, title: "Name client", width: geo.size.width * 1)
+                    SettingsButton(text: $taskService, title: "Service(nails or hair)", width: geo.size.width * 1)
                     
-                    TextField("Service", text: $taskService)
-                        .font(.system(size: 16, weight: .semibold))
-                        .padding(.vertical, 14)
-                    
-                }.padding(.leading, 10)
+                }.font(.system(size: 16, weight: .medium))
                     .tint(Color.white)
                     .foregroundStyle(Color.white)
                 
-                HStack(spacing: -12) {
+                HStack(spacing: -6) {
                     HStack() {
                         
                         DatePicker("", selection: $adminCalendarViewModel.currentDate)
@@ -56,16 +51,16 @@ struct CalendarAddTask: View {
                         
                     }.padding(.trailing)
                     
-                    VStack()  {
+                    VStack {
                         
                         let colors: [String] = (1...5).compactMap { index -> String in
                             return "Color\(index)"
                         }
-                        HStack {
+                        HStack(spacing: 6) {
                             ForEach(colors, id:\.self) { color in
                                 Circle()
                                     .fill(Color(color))
-                                    .frame(width: 25, height: 25)
+                                    .frame(width: 24, height: 24)
                                     .background(content: {
                                         Circle()
                                             .stroke(lineWidth: 6)
@@ -79,24 +74,27 @@ struct CalendarAddTask: View {
                                     }
                             }
                         }
-                    }.padding(.trailing, 16)
+                    }
                     
-                }
+                }.padding(.trailing, 6)
                 HStack {
                     CustomButtonColor(bd: taskColor ,title: "Add") {
                         Task {
                             
-                            let shedul = Shedule(id: UUID().uuidString, masterId: masterModel.masterID, taskTitle: taskTitle, taskService: taskService, creationDate: adminCalendarViewModel.currentDate, tint: taskColor, timesTamp: Timestamp(date: Date()))
+                            let shedul = Shedule(id: UUID().uuidString, masterId: masterModel.masterID, nameCurrent: taskTitle, taskService: taskService, phone: "", nameMaster: "", comment: "", creationDate: adminCalendarViewModel.currentDate, tint: taskColor, timesTamp: Timestamp(date: adminCalendarViewModel.currentDate))
+
                             await Admin_CalendarViewModel.shared.addTaskShedule(masterID: masterModel.masterID, addTask: shedul)
                         }
                         
                         
                         dismiss()
                     }
-                }.padding(.leading, 12)
+                }
                 Spacer()
             })
-            .createBackgrounfFon()
+            .frame(width: geo.size.width * 1)
+                .padding(.trailing, 6)
+            .background(Color.init(hex: "#3e5b47").opacity(0.8))
         }
     }
 }

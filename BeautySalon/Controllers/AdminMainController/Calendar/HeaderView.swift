@@ -69,12 +69,12 @@ struct HeaderView: View {
                 }
             }
             .padding(.trailing, 8)
-            .onChange(of: viewModel.currentWeekIndex) { new in
+            .onChange(of: viewModel.currentWeekIndex) {_,  new in
                 if new == 0 || new == (viewModel.weekSlider.count - 1) {
                     viewModel.createWeek = true
                     
+                    viewModel.paginationWeek()
                 }
-                viewModel.paginationWeek()
             }
         }
     }

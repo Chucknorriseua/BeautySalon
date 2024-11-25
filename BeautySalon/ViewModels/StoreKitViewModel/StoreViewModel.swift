@@ -27,8 +27,12 @@ final class StoreViewModel: ObservableObject {
     
     var updateListenerTask: Task<Void, Error>? = nil
     
+    @AppStorage ("hasActiveSubscribe") private(set) var hasActiveSubscribe: Bool = false
+    
     var checkSubscribe: Bool {
-        return !purchasedSubscriptions.isEmpty
+        Task {await updateCustomerProductStatus()} 
+        return hasActiveSubscribe
+//        && !purchasedSubscriptions.isEmpty
     }
     
     init() {
@@ -76,10 +80,8 @@ final class StoreViewModel: ObservableObject {
         switch results {
         case .success(let verification):
             let transaction = try checkVerified(verification)
-            
-            
+        
             await updateCustomerProductStatus()
-            
             await transaction.finish()
             
             return transaction
@@ -103,6 +105,8 @@ final class StoreViewModel: ObservableObject {
     
     @MainActor
     func updateCustomerProductStatus() async {
+
+        var hasActive = false
         
         for await result in StoreKit.Transaction.currentEntitlements {
             do {
@@ -111,6 +115,7 @@ final class StoreViewModel: ObservableObject {
                 case .autoRenewable:
                     if let subscription = subscriptions.first(where: {$0.id == transition.productID}) {
                         purchasedSubscriptions.append(subscription)
+                        hasActive = true
                     }
                 default:
                     break
@@ -121,5 +126,6 @@ final class StoreViewModel: ObservableObject {
                 print("Failed updating product")
             }
         }
+        hasActiveSubscribe = hasActive
     }
 }

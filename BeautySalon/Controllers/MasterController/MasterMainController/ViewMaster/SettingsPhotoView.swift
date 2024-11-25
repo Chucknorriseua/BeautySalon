@@ -14,7 +14,7 @@ struct SettingsPhotoView: View {
     
     @State private var photoPickerItems: [PhotosPickerItem] = []
     
-    @StateObject var masterViewModel = MasterViewModel()
+    @StateObject var masterViewModel: MasterViewModel
     @StateObject var authViewModel = Auth_Master_ViewModel()
     @State var isShowAlert: Bool = false
     @Binding var selectedImage: String?
@@ -38,9 +38,10 @@ struct SettingsPhotoView: View {
                                        .clipShape(Circle())
                                        .clipped()
                                        .onTapGesture {
-                                           withAnimation(.snappy) {
+                                           withAnimation(.easeInOut(duration: 0.5)) {
+                                               
                                                selectedImage = image
-                                               isPressFullScreen.toggle()
+                                               isPressFullScreen = true
                                            }
                                        }
                                
@@ -48,7 +49,7 @@ struct SettingsPhotoView: View {
                                 .scrollTransition(.interactive, axis: .horizontal) { content, phase in
                                     content
                                         .opacity(phase.isIdentity ? 1 : 0)
-                                        .offset(y: phase.isIdentity ? 0 : -100)
+                                        .offset(y: phase.isIdentity ? 0 : -50)
                                 }
                         }
                     }.padding(.top, 15)
@@ -95,8 +96,6 @@ struct SettingsPhotoView: View {
         }
         .onDisappear {
             Admin_DataBase.shared.deinitListener()
-            SDImageCache.shared.clearMemory()
-            SDImageCache.shared.clearDisk()
         }
     }
 }

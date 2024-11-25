@@ -23,11 +23,10 @@ struct CalendarMainController: View {
                 .scrollIndicators(.hidden)
             
             }
-        }
-        .onAppear {
-            viewModel.setupWeeks()
-            Task {
-                await Admin_CalendarViewModel.shared.fetchAllSheduleCurrentMaster(masterID: masterModel.masterID, sheduleMaster: viewModel.shedules)
+            .onAppear {
+                viewModel.setupWeeks()
+                Task { await viewModel.fetchAllSheduleCurrentMaster(masterID: masterModel.masterID, sheduleMaster: viewModel.shedules)
+                }
             }
         }
     }

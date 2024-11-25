@@ -41,25 +41,29 @@ enum TabbedItems: Int, CaseIterable{
 
 struct Admin_MainTabbedView: View {
     
-    @State var selectedTab = 0
+    @State private var selectedTab = 0
+    @StateObject var adminViewModel: AdminViewModel
+//    @StateObject var admimCalendarViewModel: Admin_CalendarViewModel
     
     var body: some View {
         
         ZStack(alignment: .bottom){
-            TabView(selection: $selectedTab) {
+            VStack {
                 
-                AdminMainController().toolbarBackground(.hidden, for: .tabBar)
-                    .tag(0)
+                switch selectedTab {
+                case 0:
+                    AdminMainController(admimViewModel: adminViewModel)
+                case 1:
+                    GetAllMastersInCompany(adminViewModel: adminViewModel)
+                case 2:
+                    GetAllUsersOfCompany(adminViewModel: adminViewModel)
+                case 3:
+                    SettingsAdminView(adminViewModel: adminViewModel)
+                default:
+                    AdminMainController(admimViewModel: adminViewModel)
+                }
+            }.toolbarBackground(.hidden, for: .tabBar)
 
-                GetAllMastersInCompany().toolbarBackground(.hidden, for: .tabBar)
-                    .tag(1)
-
-                GetAllUsersOfCompany().toolbarBackground(.hidden, for: .tabBar)
-                    .tag(2)
-
-                SettingsView()
-                    .tag(3)
-            }
             ZStack {
                 HStack{
                     ForEach((TabbedItems.allCases), id: \.self){ item in
@@ -75,13 +79,12 @@ struct Admin_MainTabbedView: View {
             .frame(height: 70)
             .background(.ultraThinMaterial)
             .cornerRadius(35)
-            .padding(.horizontal, 26)
-        }
+        }.ignoresSafeArea(.keyboard)
     }
 }
 
 extension Admin_MainTabbedView{
-    func CustomTabItem(imageName: String, title: String, isActive: Bool) -> some View{
+   private func CustomTabItem(imageName: String, title: String, isActive: Bool) -> some View{
         HStack(spacing: 10){
             Spacer()
             Image(systemName: imageName)
@@ -100,8 +103,4 @@ extension Admin_MainTabbedView{
         .background(isActive ? .white.opacity(0.9) : .clear)
         .cornerRadius(30)
     }
-}
-
-#Preview {
-    Admin_MainTabbedView()
 }

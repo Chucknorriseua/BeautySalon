@@ -8,11 +8,47 @@
 import SwiftUI
 
 struct AdminListNews: View {
+    
+    
+    @ObservedObject var adminViewModel: AdminViewModel
+    @Environment(\.dismiss) private var dismiss
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-    }
-}
+        
+        VStack {
+            List {
+                Section {
+                    ForEach(adminViewModel.addMasterInRoom, id: \.self) { master in
+                        CellListMasterDelete(master: master)
+                            .listRowBackground(Color.init(hex: "#3e5b47").opacity(0.5))
+                    }.onDelete(perform: { indexSet in
+                        deleteMaster(indexOffset: indexSet)
+                    })
+                    
+                } header: {
+                    Text("Delete master from Salon")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(Color.yellow.opacity(0.9))
+                        .padding()
+                }
+            }.listStyle(.plain)
+                .background(Color.init(hex: "#3e5b47").opacity(0.9))
 
-#Preview {
-    AdminListNews()
+        }.toolbar(content: {
+            ToolbarItem(placement: .topBarLeading) {
+                TabBarButtonBack {
+                    dismiss()
+                }
+            }
+        }).navigationBarBackButtonHidden(true)
+    }
+    func deleteMaster(indexOffset: IndexSet) {
+        Task {
+            for index in indexOffset {
+                let masterIndex = adminViewModel.addMasterInRoom[index]
+                await adminViewModel.deleteMasterFromSalon(master: masterIndex)
+                
+            }
+        }
+    }
 }

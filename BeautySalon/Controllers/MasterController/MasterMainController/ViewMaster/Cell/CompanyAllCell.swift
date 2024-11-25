@@ -10,59 +10,81 @@ import SDWebImageSwiftUI
 
 struct CompanyAllCell: View {
     
-    @State var companyModel: Company_Model
+    @State var companyModel: Company_Model? = nil
     
     var body: some View {
         
-        VStack {
-            VStack(spacing: 0) {
-                if let image = companyModel.image, let url = URL(string: image) {
-                    WebImage(url: url)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 380, height: 260)
-                        .clipShape(.rect(topLeadingRadius: 10, topTrailingRadius: 120))
-                } else {
-                    Image("ab1")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 380, height: 260)
-                        .clipShape(.rect(topLeadingRadius: 10, topTrailingRadius: 120))
-                }
-   
-                
-                ZStack(alignment: .center) {
-                    
-                    VStack(alignment: .center, spacing: 10) {
-                        //                    Name
-                        Text(companyModel.companyName ?? "").font(.system(size: 18).bold())
-                        
-                            .lineLimit(4)
-                        
-                        VStack {
-                            //                     Description
-                            Text("fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds  fdfdsfdsfdsfds fdfdsfdsfdsfds dfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds fdfdsfdsfdsfds dsfdsff fdsfds dsdsds")
-                                .fontWeight(.medium)
-                                .lineLimit(20)
-                            
-                        }.frame(width: 360, height: 140)
-                        //                Email and phone
-                        VStack(alignment: .center, spacing: 5) {
-                            Text(companyModel.email ?? "")
-                            Text(companyModel.phone ?? "")
-                        }
+        GeometryReader { geo in
+            
+            VStack {
+                VStack(spacing: 0) {
+                    if let image = companyModel?.image, let url = URL(string: image) {
+                        WebImage(url: url)
+                            .resizable()
+                            .indicator(.activity)
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geo.size.width * 0.95, height: geo.size.height * 0.5)
+                            .clipShape(.rect(topLeadingRadius: 60))
+                    } else {
+                        Image("ab1")
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: geo.size.width * 0.95, height: geo.size.height * 0.4)
+                            .clipShape(.rect(topLeadingRadius: 42))
                     }
                     
+                    
+                    ZStack(alignment: .center) {
+                        
+                        VStack(alignment: .center, spacing: 2) {
+                            //                    Name
+                            Text(companyModel?.companyName ?? "no found company")
+                                .font(.system(size: 24, weight: .heavy))
+                                .lineLimit(4)
+                            
+                            VStack(spacing: 6) {
+                                //                     Description
+                                Text(companyModel?.description ?? "no description")
+                                    .fontWeight(.medium)
+                                    .lineLimit(10)
+                            }.frame(width: geo.size.width * 0.95, height: geo.size.height * 0.28)
+                                .multilineTextAlignment(.leading)
+                            VStack {
+                                Text(companyModel?.adress ?? "no adress")
+                                    .font(.system(size: 18, weight: .heavy))
+                                    .lineLimit(2)
+                                Spacer()
+                            }.frame(width: geo.size.width * 0.95, height: geo.size.height * 0.07)
+                            
+                            //                Email and phone
+                            VStack(alignment: .center, spacing: 5) {
+                                HStack {
+                                    Image(systemName: "phone.circle.fill")
+                                        .font(.system(size: 22))
+                                    Text("\(companyModel?.phone ?? "no phone")")
+                                }.onTapGesture {
+                                    let phoneNumber = "tel://" + (companyModel?.phone ?? "no phone")
+                                    if let url = URL(string: phoneNumber) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }
+                                HStack {
+                                    Image(systemName: "envelope.fill")
+                                        .font(.system(size: 20))
+                                    Text(" \(companyModel?.email ?? "no email")")
+                                }
+                            }
+                        }.multilineTextAlignment(.center)
+                        
+                    }
+                    .frame(width: geo.size.width * 0.95, height: geo.size.height * 0.52)
+                    .background(.ultraThinMaterial.opacity(0.7), in: .rect(bottomLeadingRadius: 42))
+                    
                 }
-                .frame(width: 380, height: 280)
-                .background(.ultraThinMaterial.opacity(0.9), in: .rect(bottomLeadingRadius: 10, bottomTrailingRadius: 120))
                 
-            }
-            
-        }.foregroundStyle(Color.white)
+            }.foregroundStyle(Color.white)
+                .padding(.leading, 10)
+        }.frame(height: 600)
+
     }
 }
-
-#Preview(body: {
-    CompanyAllCell(companyModel: Company_Model(id: "", name: "", companyName: "", email: "", phone: "", image: ""))
-})

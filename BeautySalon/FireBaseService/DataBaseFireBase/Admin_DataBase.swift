@@ -12,21 +12,23 @@ import FirebaseStorage
 
 
 @MainActor
-class Admin_DataBase {
+final class Admin_DataBase {
     
 //MARK: Properties
     
     static var shared = Admin_DataBase()
     
-    weak var listener: ListenerRegistration?
+    private(set) weak var listener: ListenerRegistration?
     
     let auth = Auth.auth()
     
-    init() {
-        
-    }
+    private init() {}
     
     private let db = Firestore.firestore()
+    
+    private var lastDocument: DocumentSnapshot? = nil
+    
+    private var pageSize: Int = 5
     
     private let storage = Storage.storage().reference()
     
@@ -38,28 +40,25 @@ class Admin_DataBase {
         return db.collection("Master")
     }
     
-    private var userFS: CollectionReference {
-        return db.collection("User")
-    }
-    
-    
     
     // MARK:  /\_____________________________ADMIN___________________________________/\
     
     //    MARK: Save company on Fire Base BeautySalon/Company.... name admin and company
     func setCompanyForAdmin(admin: Company_Model) async throws {
         guard let uid = auth.currentUser?.uid else { return }
-        
         try await mainFS.document(uid).setData(admin.admin_Model_FB, merge: true)
     }
     
     
 // Send shedule for master about client
     func send_ShedulesTo_Master(idMaster: String, shedule: Shedule) async throws {
-       
+        guard let uid = auth.currentUser?.uid else { throw NSError(domain: "Not found id", code: 0, userInfo: nil) }
+
         do {
-            try await masterFs.document(idMaster).collection("Shedule").addDocument(data: shedule.shedule)
-            
+            var id = shedule
+            id.masterId = idMaster
+            try await mainFS.document(uid).collection("Masters").document(idMaster).collection("Shedule").addDocument(data: id.shedule)
+
         } catch {
             print("DEBUG: sendAppoitmentToMaster not correct send...", error.localizedDescription)
             throw error
@@ -67,10 +66,10 @@ class Admin_DataBase {
     }
     
     // add a master to your room
-        func add_MasterToRoom(idMaster: String, master: MasterModel) async throws {
-           
+    func add_MasterToRoom(idMaster: String, master: MasterModel) async throws {
+            guard let uid = auth.currentUser?.uid else { throw NSError(domain: "Not found id", code: 0, userInfo: nil) }
             do {
-                try await mainFS.document(idMaster).collection("Masters").document(master.id).setData(master.master_ModelFB)
+                try await mainFS.document(uid).collection("Masters").document(master.masterID).setData(master.master_ModelFB)
             } catch {
                 print("DEBUG: sendAppoitmentToMaster not correct send...", error.localizedDescription)
                 throw error
@@ -87,85 +86,27 @@ class Admin_DataBase {
             return false
         }
     }
-  
+    
+    // MARK: Fetch Method
 //  Fetch profile as Admin
     func fetchAdmiProfile() async throws -> Company_Model {
-        
         guard let uid = auth.currentUser?.uid else { throw NSError(domain: "Not found id", code: 0, userInfo: nil) }
         
-        do {
-            let snapShot = try await mainFS.document(uid).getDocument()
-            guard let data = snapShot.data(),
-                  let adminID = data["adminID"] as? String,
-                  let id = data["id"] as? String,
-                  let name = data["name"] as? String,
-                  let companyName = data["companyName"] as? String,
-                  let email = data["email"] as? String,
-                  let phone = data["phone"] as? String,
-                  let image = data["image"] as? String,
-                  let adress = data["adress"] as? String,
-                  let desc = data["description"] as? String else {
-                throw NSError(domain: "Not found id", code: 0, userInfo: nil)
-            }
-            return Company_Model(id: id, adminID: adminID, name: name, companyName: companyName, adress: adress, email: email, phone: phone, description: desc, image: image)
-
+        do { let snapShot = try await mainFS.document(uid).getDocument(as: Company_Model.self)
+            return snapShot
         } catch {
             print("DEBUG: Error fetch profile as admin...", error.localizedDescription)
             throw error
         }
-        
     }
     
-    //  MARK: Fetch all comapny with Fire Base BeautySalon/Company.... name admin and company
-    func fetchAllCompany() async throws -> [Company_Model] {
-        
-        do {
-            let snapShot = try await mainFS.getDocuments()
-            
-            let companies: [Company_Model] = try snapShot.documents.compactMap { document in
-                let data = document.data()
-                
-                guard let id = data["id"] as? String,
-                      let adminID = data["adminID"] as? String,
-                      let name = data["name"] as? String,
-                      let companyName = data["companyName"] as? String,
-                      let email = data["email"] as? String,
-                      let phone = data["phone"] as? String,
-                      let image = data["image"] as? String,
-                      let adress = data["adress"] as? String,
-                      let desc = data["description"] as? String else {
-                    throw NSError(domain: "snapShot error data", code: 0, userInfo: nil)
-                }
-                
-                return Company_Model(id: id, adminID: adminID, name: name, companyName: companyName, adress: adress, email: email, phone: phone, description: desc, image: image)
-            }
-            
-            print("COMPANIES: \(companies), SNAPSHOT: \(snapShot)")
-            return companies
-            
-        } catch {
-            print("DEBUG: Error fetch all company", error.localizedDescription)
-            throw error
-        }
-    }
 //  fetch All Masters in current company
-    func fetch_All_Masters() async throws -> [MasterModel] {
+    func fetch_All_MastersOn_FireBase() async throws -> [MasterModel] {
         do {
             
-           let snapShot = try await masterFs.getDocuments()
-            let masters: [MasterModel] = try snapShot.documents.compactMap { document in
-                let data = document.data()
-                
-                guard let id = data["id"] as? String,
-                      let masterID = data["masterID"] as? String,
-                      let name = data["name"] as? String,
-                      let desc = data["description"] as? String,
-                      let email = data["email"] as? String,
-                      let phone = data["phone"] as? String,
-                      let image = data["image"] as? String else {
-                    throw NSError(domain: "snapShot error data", code: 0, userInfo: nil)
-                }
-                return MasterModel(id: id, masterID: masterID, name: name, email: email, phone: phone, description: desc, image: image, imagesUrl: [])
+            let snapShot = try await masterFs.getDocuments()
+            let masters: [MasterModel] = try snapShot.documents.compactMap {[weak self] document in
+                return try self?.convertDocumentToMater(document)
             }
             return masters
         } catch {
@@ -174,7 +115,76 @@ class Admin_DataBase {
         }
         
     }
+    //  fetch All Masters in current company
+        func getAll_Added_Masters() async throws -> [MasterModel] {
+            guard let uid = auth.currentUser?.uid else { throw NSError(domain: "Not found id", code: 0, userInfo: nil) }
+            do {
+                
+                let snapShot = try await mainFS.document(uid).collection("Masters").getDocuments()
+                let masters: [MasterModel] = try snapShot.documents.compactMap { [weak self] document in
+                    return try self?.convertDocumentToMater(document)
+                }
+                return masters
+            } catch {
+                print("DEBUG ERROR FETCH ALL MASTER...", error.localizedDescription)
+                throw error
+            }
+            
+        }
     
+    func fetchShedule_CurrentMaster(masterID: String) async throws -> [Shedule] {
+        guard let uid = auth.currentUser?.uid else { throw NSError(domain: "Not found id", code: 0, userInfo: nil)}
+        do {
+            let snapShot = try await mainFS.document(uid).collection("Masters").document(masterID).collection("Shedule").getDocuments()
+            let shedule: [Shedule] = try snapShot.documents.compactMap {[weak self] doc in
+                return try self?.convertDocumentToShedule(doc)
+            }
+            return shedule
+        } catch {
+            print("DEBUG: ERROR FETCH CURRENT MASTRER SHEDULE", error.localizedDescription)
+            throw error
+        }
+    }
+
+    func fetch_CurrentClient_SentRecord() async throws -> [Client] {
+        guard let uid = auth.currentUser?.uid else { throw NSError(domain: "Not found id", code: 0, userInfo: nil)}
+        do {
+            let snapShot = try await mainFS.document(uid).collection("Client").getDocuments()
+            let client: [Client] = try snapShot.documents.compactMap {[weak self] doc in
+                return try self?.convertDocumentToClient(doc)
+            }
+            return client
+        } catch {
+            print("DEBUG: ERROR FETCH CURRENT MASTRER SHEDULE", error.localizedDescription)
+            throw error
+        }
+    }
+    
+    func fetch_ClientRecords(isLoad: Bool = false) async throws -> [Shedule] {
+        guard let uid = auth.currentUser?.uid else { throw NSError(domain: "Not found id", code: 0, userInfo: nil)}
+        var query = mainFS.document(uid).collection("Record").order(by: "creationDate", descending: false).limit(to: pageSize)
+        
+        if let lastDoc = lastDocument, !isLoad {
+            query = query.start(afterDocument: lastDoc)
+        }
+        
+        do {
+            
+            let snapShot = try await query.getDocuments()
+     
+            let newRec = snapShot.documents.compactMap { document in
+                try? document.data(as: Shedule.self)
+            }
+            
+            lastDocument = snapShot.documents.last
+            return newRec
+        } catch {
+            print("DEBUG: ERROR FETCH records amount", error.localizedDescription)
+            throw error
+        }
+    }
+    
+// MARK: Update Image
 // update profile as admin
 
     func updateProfile_Admin() async {
@@ -197,12 +207,27 @@ class Admin_DataBase {
         })
     }
     
+    //    Update Image fire store
+    func updateLocationCompany(company: Company_Model) async {
+        guard let uid = auth.currentUser?.uid else { return }
+        guard let latitude = company.latitude, let longitudes = company.longitude else { return }
+        
+        do {
+            let master = mainFS.document(uid)
+            try await master.updateData(["latitude": latitude, "longitude": longitudes])
+            
+        } catch {
+            print("DEBUG: Error updateLocationCompany", error.localizedDescription)
+        }
+    }
+
+    
     
     func upDatedImage_URL_Firebase_Admin(imageData: Data) async -> URL? {
         guard let uid = auth.currentUser?.uid else { return nil }
         
         guard let imageData = UIImage(data: imageData) else { return nil}
-        guard let image = imageData.jpegData(compressionQuality: 0.5) else { return nil}
+        guard let image = imageData.jpegData(compressionQuality: 0.1) else { return nil}
         do {
             let store = storage.child("image/\(uid)")
             
@@ -228,18 +253,82 @@ class Admin_DataBase {
             print("DEBUG: Error uploadImageFireBase", error.localizedDescription)
         }
     }
+//    MARK: REMOVE
+    func removeRecordFireBase(id: String) async throws {
+        guard let uid = auth.currentUser?.uid else { return }
+        let record =  mainFS.document(uid).collection("Record")
+        let snap = try await record.whereField("id", isEqualTo: id).getDocuments()
+        for doc in snap.documents {
+            try await doc.reference.delete()
+        }
+    }
     
+    func remove_MasterFromSalon(masterID: String) async throws {
+        guard let uid = auth.currentUser?.uid else { return }
+        let record =  mainFS.document(uid).collection("Masters")
+        let snap = try await record.whereField("masterID", isEqualTo: masterID).getDocuments()
+        for doc in snap.documents {
+            try await doc.reference.delete()
+        }
+    }
+    
+    func remove_MasterShedule(shedule: Shedule, clientID: String) async throws {
+        guard let uid = auth.currentUser?.uid else { return }
+        let record =  mainFS.document(uid).collection("Masters").document(clientID).collection("Shedule")
+        let snap = try await record.whereField("id", isEqualTo: shedule.id).getDocuments()
+        for doc in snap.documents {
+            try await doc.reference.delete()
+        }
+    }
+    
+    func removeYesterdaysSchedule(masterID: String) async throws {
+        guard let uid = auth.currentUser?.uid else { return }
+        
+        let calendar = Calendar.current
+        guard let yesterday = calendar.date(byAdding: .day, value: -6, to: Date()) else { return }
+        let startOfYesterday =  calendar.startOfDay(for: yesterday)
+        guard let endOfYesterday = calendar.date(byAdding: .day, value: 1, to: startOfYesterday) else { return }
+
+        let record = mainFS.document(uid).collection("Masters").document(masterID).collection("Shedule")
+        let snap = try await record.whereField("creationDate", isGreaterThanOrEqualTo: startOfYesterday)
+                                    .whereField("creationDate", isLessThan: endOfYesterday)
+                                    .getDocuments()
+ 
+         for doc in snap.documents {
+             try await doc.reference.delete()
+          
+         }
+        
+    }
+    
+    func removeYesterdaysClient() async {
+        guard let uid = auth.currentUser?.uid else { return }
+        
+        let calendar = Calendar.current
+        guard let yesterday = calendar.date(byAdding: .day, value: -4, to: Date()) else { return }
+        let startOfYesterday = calendar.startOfDay(for: yesterday)
+        guard let endOfYesterday = calendar.date(byAdding: .day, value: 1, to: startOfYesterday) else { return }
+
+        let record = mainFS.document(uid).collection("Record")
+        
+        do {
+        
+            let snap = try await record.whereField("creationDate", isGreaterThanOrEqualTo: startOfYesterday)
+                                       .whereField("creationDate", isLessThan: endOfYesterday)
+                                       .getDocuments()
+            
+            for doc in snap.documents {
+                try await doc.reference.delete()
+            }
+        } catch {
+            print("DEBUG: Error deleting records for yesterday...", error.localizedDescription)
+        }
+    }
     
     func deinitListener() {
         listener?.remove()
         listener = nil
-        print("DE INIT deinitListener---------->>>>>>>>>>>>>>>>>")
     }
-    
-    deinit {
-        Task {
-           await deinitListener()
-        }
-    }
+
 }
 

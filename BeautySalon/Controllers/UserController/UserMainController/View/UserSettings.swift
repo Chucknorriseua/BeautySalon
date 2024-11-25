@@ -13,7 +13,7 @@ struct UserSettings: View {
     @State private var taskTitle: String = ""
     @State private var taskService: String = ""
     
-    @ObservedObject var clientViewModel: ClientViewModel
+    @StateObject var clientViewModel: ClientViewModel
     
     var body: some View {
         GeometryReader { geo in
@@ -30,37 +30,34 @@ struct UserSettings: View {
                 }.background(Color.red, in: .rect(bottomLeadingRadius: 44, bottomTrailingRadius: 44))
                 
                 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .center, spacing: 16) {
                     
                     SettingsButton(text: $clientViewModel.clientModel.name, title: "Change name", width: geo.size.width * 1)
                     SettingsButton(text: $clientViewModel.clientModel.phone, title: "Phone +(000)", width: geo.size.width * 1)
                         .keyboardType(.numberPad)
                         .textContentType(.telephoneNumber)
-                    SettingsButton(text: $clientViewModel.clientModel.email, title: "You'r email", width: geo.size.width * 1)
-                        .keyboardType(.emailAddress)
-                        .textContentType(.emailAddress)
-                    
-                }.padding(.leading, 10)
-                    .font(.system(size: 16, weight: .medium))
-                    .tint(Color.white)
-                    .foregroundStyle(Color.white)
+                        .onChange(of: clientViewModel.clientModel.phone) { _, new in
+                            clientViewModel.clientModel.phone = formatPhoneNumber(new)
+                        }
+
+                }
+                .font(.system(size: 16, weight: .medium))
+                .tint(Color.white)
+                .foregroundStyle(Color.white)
 
                 HStack {
                     MainButtonSignIn(image: "person.crop.circle.fill", title: "Save", action: {
                         Task {
                             await clientViewModel.save_UserProfile()
+                            NotificationController.sharet.notify(title: "Save settings", subTitle: "Your settings have been saved👌", timeInterval: 1)
                             dismiss()
                         }
                     })
                 }
                 Spacer()
-            })
-            .createBackgrounfFon()
+            }).padding(.leading, 6)
+            .background(Color.init(hex: "#3e5b47").opacity(0.8))
             .ignoresSafeArea(.all)
-        }
+        }.frame(width: 420)
     }
 }
-
-//#Preview {
-//    UserSettings()
-//}

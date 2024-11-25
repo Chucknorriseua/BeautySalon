@@ -9,15 +9,22 @@ import SwiftUI
 
 struct AdminAddForMasterShedule: View {
     
+    @Environment (\.dismiss) var dismiss
+    
+    @StateObject var adminViewModel: AdminViewModel
+    @State var masterModel: MasterModel
+    
     var body: some View {
+        GeometryReader { geo in
+            
+            VStack {
+                
+                CalendarMainController(viewModel: Admin_CalendarViewModel.shared, masterModel: masterModel)
+                
+            }
+            .createBackgrounfFon()
+            .swipeBackDismiss(dismiss: dismiss)
+        }
         
-        VStack {
-            CalendarMainController(viewModel: CalendarViewModel.shared)
-        }.padding(.bottom, 24)
-            .createFrame()
     }
-}
-
-#Preview {
-    AdminAddForMasterShedule()
 }

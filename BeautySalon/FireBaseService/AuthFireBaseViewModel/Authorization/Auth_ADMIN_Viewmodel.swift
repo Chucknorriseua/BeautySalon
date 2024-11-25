@@ -8,107 +8,124 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseStorage
+import FirebaseFirestore
 
 protocol isFormValid {
     var isFarmValid: Bool { get }
 }
 
+@MainActor
 class Auth_ADMIN_Viewmodel: ObservableObject {
     
     static var shared = Auth_ADMIN_Viewmodel()
     
+    @Published var locationManager = LocationManager()
     @Published var signInViewModel = SignInViewModel()
     @Published var selectedImage: Data? = nil
+    @Published var currentUser: User? = nil
     
     let auth = Auth.auth()
-    var currentUser: User? {
-        return auth.currentUser
-    }
     
     init() {
-
+        _ = auth.addStateDidChangeListener { [weak self] _ , user in
+            DispatchQueue.main.async {
+                self?.currentUser = user
+            }
+        }
     }
+    
+    
     
     func creatAccount(email: String,
                       password: String,
                       nameAdmin: String,
                       nameCompany:String,
-                      phone: String) async throws {
+                      phone: String,
+                      desc: String,
+                      roomPassword: String) async throws {
         
         do {
             
-            let result = try await auth.createUser(withEmail: email,
+            let result = try await Auth.auth().createUser(withEmail: email,
                                                    password: password)
+            let uid = result.user.uid
             var dowloadURL: URL? = nil
             
             if let imageData = selectedImage,
-            let uiImagedata = UIImage(data: imageData)?.jpegData(compressionQuality: 0.7) {
+            let uiImagedata = UIImage(data: imageData)?.jpegData(compressionQuality: 0.1) {
             let storage = Storage.storage().reference().child("/image/\(result.user.uid)")
             _ = try await storage.putDataAsync(uiImagedata)
             dowloadURL = try await storage.downloadURL()
                 
-            } else { print("DEBUG: Error download image...") }
+            } else { }
             
             
-            let admin = Company_Model(id: result.user.uid,
+            let admin = Company_Model(id: uid,
+                                      adminID: uid,
                                    name: nameAdmin,
                                    companyName: nameCompany,
                                     adress: "",
                                    email: email,
                                    phone: phone,
-                                   description: "",
-                                   image: dowloadURL?.absoluteString ?? "")
+                                    description: desc,
+                                      image: dowloadURL?.absoluteString ?? "",
+                                      latitude: locationManager.userLatitude, longitude: locationManager.userLongitude)
+          
+            try await Admin_DataBase.shared.setCompanyForAdmin(admin: admin)
             
-            try await DataBase_FireBase.shared.setCompanyForAdmin(admin: admin)
-            
-        } catch { print("Error create account with Fb", error.localizedDescription.lowercased()) }
+        } catch { print("creatAccount", error.localizedDescription.lowercased()) }
     }
     
-    func saveAdminCompany() async  {
+    func signIn(email: String, password: String) async throws -> Bool {
         
         do {
-            
-            try await creatAccount(email: signInViewModel.email,
-                                   password: signInViewModel.password,
-                                   nameAdmin: signInViewModel.fullName,
-                                   nameCompany: signInViewModel.nameCompany
-                                   ,phone: signInViewModel.phone)
-            
-        } catch {
-            print("Error saveAdminCompany", error.localizedDescription)
-        }
-        
-    }
-    
-    func signIn(email: String, password: String) async -> Bool {
-        do {
-            try await Auth.auth().signIn(withEmail: email,
+            try await auth.signIn(withEmail: email,
                                          password: password)
-            return true
+            guard let uid = auth.currentUser?.uid else { throw NSError(domain: "Not correct uid", code: 0)}
+            
+            let admin = try await Admin_DataBase.shared.fetchAdmiProfile()
+            if uid == admin.id {
+                return true
+            } else { return false}
+            
         } catch {
-            print("Errorororor", error.localizedDescription)
+            print("signIn", error.localizedDescription)
             return false
         }
+
     }
     
     
     
-    func signOut() {
+    func signOut() async {
         
         do {
-            try Auth.auth().signOut()
-            print("signOut Succec")
+            try auth.signOut()
+            self.currentUser = nil
         } catch {
             print("DEBUG: SignOut Error...", error.localizedDescription)
         }
     }
     
-    func createMasterAccount() {
+    
+    func saveAdminCompany() async -> Bool {
+        
+        do {
+            
+            try await creatAccount(email: signInViewModel.email,
+                  
+                                   password: signInViewModel.password,
+                                   nameAdmin: signInViewModel.fullName,
+                                   nameCompany: signInViewModel.nameCompany,
+                                   phone: signInViewModel.phone, 
+                                   desc: signInViewModel.textEditorDescrt,
+                                   roomPassword: signInViewModel.adress)
+            return true
+        } catch {
+            print("Error saveAdminCompany", error.localizedDescription)
+            return false
+        }
         
     }
-    
-    func createUser() {
-        
-    }
-    
+ 
 }

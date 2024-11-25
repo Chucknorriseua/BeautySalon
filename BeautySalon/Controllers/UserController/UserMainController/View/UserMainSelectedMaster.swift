@@ -8,11 +8,24 @@
 import SwiftUI
 
 struct UserMainSelectedMaster: View {
+    
+    @StateObject var clientViewModel: ClientViewModel
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-    }
-}
+        GeometryReader { geo in
+            ScrollView {
+                
+                LazyVStack {
+                    ForEach(clientViewModel.mastersInRoom, id: \.self) { master in
+                        NavigationLink(destination: User_MasterDetailse(masterModel: master).navigationBarBackButtonHidden(true)) {
+                            
+                            User_MasterInToRoomCell(masterModel: master)
+                        }
+                    }
+                }.padding(.top, 26)
 
-#Preview {
-    UserMainSelectedMaster()
+            }.createBackgrounfFon()
+            .scrollIndicators(.hidden)
+        }
+    }
 }

@@ -1,5 +1,5 @@
 //
-//  UserSignUp_SheduleForAdmin.swift
+//  UserSend_SheduleForAdmin.swift
 //  BeautyMasters
 //
 //  Created by Евгений Полтавец on 06/10/2024.
@@ -10,7 +10,7 @@ import FirebaseFirestore
 
 struct UserSend_SheduleForAdmin: View {
     
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     
     @StateObject var clientViewModel: ClientViewModel
     
@@ -18,6 +18,7 @@ struct UserSend_SheduleForAdmin: View {
     @State private var phoneRecord: String = ""
     @State private var nameMaster: String = ""
     @State private var comment: String = ""
+    @State private var selected: String = ""
     
     var body: some View {
         GeometryReader { geo in
@@ -35,11 +36,26 @@ struct UserSend_SheduleForAdmin: View {
                 
                 
                 VStack(alignment: .leading, spacing: 10) {
-                    SettingsButton(text: $phoneRecord, title: "Phone +(000)", width: geo.size.width * 1)
+                    SettingsButton(text: $clientViewModel.clientModel.phone, title: "Phone +(000)", width: geo.size.width * 1)
                         .keyboardType(.numberPad)
                         .textContentType(.telephoneNumber)
+                        .onChange(of: clientViewModel.clientModel.phone) { _, new in
+                            clientViewModel.clientModel.phone = formatPhoneNumber(new)
+                        }
                     SettingsButton(text: $serviceRecord, title: "Service- make nails", width: geo.size.width * 1)
-                    SettingsButton(text: $nameMaster, title: "The name of the specialist you want sign up", width: geo.size.width * 1)
+                    HStack {
+                        Text("Selected master: ")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(Color(hex: "F3E3CE")).opacity(0.7)
+                        
+                        Picker("", selection: $selected) {
+                            Image(systemName: "person.crop.circle.fill").tag("")
+                            ForEach(clientViewModel.mastersInRoom, id: \.self) { master in
+                                Text(master.name).tag(master.name)
+                            }
+                        }.pickerStyle(.menu)
+                            .tint(Color(hex: "F3E3CE")).opacity(0.7)
+                    }
                     SettingsButton(text: $comment, title: "comment: ", width: geo.size.width * 1)
                     
                 }.padding(.leading, 0)
@@ -52,9 +68,11 @@ struct UserSend_SheduleForAdmin: View {
                             .datePickerStyle(.compact)
                 }.padding(.trailing, 110)
                 HStack {
+               
                     MainButtonSignIn(image: "pencil.line", title: "Send record", action: {
-                        let sendRecord = Shedule(id: UUID().uuidString, masterId: clientViewModel.clientModel.id, nameCurrent: clientViewModel.clientModel.name, taskService: serviceRecord, phone: phoneRecord, nameMaster: nameMaster, comment: comment, creationDate: clientViewModel.currentDate, tint: "Color", timesTamp: Timestamp(date: Date()))
                         
+                        let sendRecord = Shedule(id: UUID().uuidString, masterId: UUID().uuidString, nameCurrent: clientViewModel.clientModel.name, taskService: serviceRecord, phone: clientViewModel.clientModel.phone, nameMaster: selected, comment: comment, creationDate: clientViewModel.currentDate, tint: "Color1", timesTamp: Timestamp(date: Date()))
+                    
                         Task {
                             await clientViewModel.send_SheduleForAdmin(adminID: clientViewModel.adminProfile.adminID, record: sendRecord)
                             NotificationController.sharet.notify(title: "You send record for \(clientViewModel.adminProfile.name)", subTitle: "your record has been sent to the admin, please wait for the admin to contact you", timeInterval: 1)

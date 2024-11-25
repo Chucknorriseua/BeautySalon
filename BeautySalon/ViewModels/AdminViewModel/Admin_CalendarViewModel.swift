@@ -6,11 +6,11 @@
 //
 
 import SwiftUI
+import FirebaseCore
 
-class Admin_CalendarViewModel: ObservableObject {
+final class Admin_CalendarViewModel: ObservableObject {
     
-    static var shared = Admin_CalendarViewModel()
-    init() {}
+    static let shared = Admin_CalendarViewModel()
      
     @Published var currentDate: Date = Date()
     @Published var currentWeekIndex: Int = 1
@@ -18,6 +18,55 @@ class Admin_CalendarViewModel: ObservableObject {
     @Published var isPresentedNewTask: Bool = false
     @Published var createWeek: Bool = false
     @Published var productTask: [Shedule] = []
+    @Published var shedules: Shedule
+    
+    private init(shedules: Shedule? = nil) {
+        self.shedules = shedules ?? Shedule.sheduleModel()
+    }
+    
+    @MainActor
+    func fetchAllSheduleCurrentMaster(masterID: String, sheduleMaster: Shedule) async {
+        do {
+            try await Admin_DataBase.shared.removeYesterdaysSchedule(masterID: masterID)
+            let shedule = try await Admin_DataBase.shared.fetchShedule_CurrentMaster(masterID: masterID)
+            let sortedDate = shedule.sorted(by: {$0.creationDate < $1.creationDate})
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.productTask = sortedDate
+            }
+        } catch {
+            print("DEBUG: ERROR--fetchAllSheduleCurrentMaster" , error.localizedDescription)
+        }
+    }
+    
+    @MainActor
+    func addTaskShedule(masterID: String, addTask: Shedule) async {
+        do {
+            try await Admin_DataBase.shared.send_ShedulesTo_Master(idMaster: masterID, shedule: addTask)
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                self.productTask.append(addTask)
+            }
+        } catch {
+            print("DEBUG: ERROR--addTaskShedule" , error.localizedDescription)
+        }
+    }
+    
+    @MainActor
+    func removeSheduleCurrentMaster(shedule: Shedule, clientID: String) async {
+        if let index = productTask.firstIndex(where: {$0.id == shedule.id}) {
+            self.productTask.remove(at: index)
+        }
+        do {
+            try await Admin_DataBase.shared.remove_MasterShedule(shedule: shedule, clientID: clientID)
+        } catch {
+            print("DEBUG: Error deleteRecord...", error.localizedDescription)
+        }
+    }
+    
+    func getTask(masterID: String, date: Date) -> [Shedule] {
+        return productTask.filter({$0.masterId == masterID && Calendar.current.isDate($0.creationDate, inSameDayAs: date)})
+        }
     
     func setupWeeks() {
         if weekSlider.isEmpty {
@@ -31,20 +80,6 @@ class Admin_CalendarViewModel: ObservableObject {
             }
         }
     }
-    
-    @MainActor
-    func addTaskShedule(masterID: String, addTask: Shedule) async {
-        do {
-            try await Admin_DataBase.shared.send_ShedulesTo_Master(idMaster: masterID, shedule: addTask)
-            productTask.append(addTask)
-        } catch {
-            print("DEBUG: ERROR--addTaskShedule" , error.localizedDescription)
-        }
-    }
-    
-    func getTask(masterID: String, date: Date) -> [Shedule] {
-        return productTask.filter({$0.masterId == masterID && Calendar.current.isDate($0.creationDate, inSameDayAs: date)})
-        }
     
     func paginationWeek() {
         if weekSlider.indices.contains(currentWeekIndex) {

@@ -37,38 +37,46 @@ enum TabbedItemsMaster: Int, CaseIterable{
 
 struct MasterTabBar: View {
     
-    @State var selectedTab = 0
+    @State private var selectedTab = 0
+    @StateObject var masterViewModel: MasterViewModel
+    @StateObject var VmCalendar: MasterCalendarViewModel
+    @State private var isPressFullScreen: Bool = false
     
     var body: some View {
-        
-        ZStack(alignment: .bottom){
-            TabView(selection: $selectedTab) {
-                MasterMainController().toolbar(.hidden, for: .tabBar)
-                    .tag(0)
 
-                GetAllUsersOfCompany().toolbar(.hidden, for: .tabBar)
-                    .tag(1)
+        ZStack(alignment: .bottom) {
+            ZStack {
+                switch selectedTab {
+                case 0:
+                    MasterMainController(masterViewModel: masterViewModel, VmCalendar: VmCalendar)
+                case 1:
+                    ClientForMastrer(masterViewModel: MasterViewModel.shared)
+                case 2:
+                    SettingsMaster(masterViewModel: masterViewModel, isPressFullScreen: $isPressFullScreen)
+                default:
+                    MasterMainController(masterViewModel: masterViewModel, VmCalendar: VmCalendar)
+                }
+            }.toolbarBackground(.hidden, for: .tabBar)
 
-                SettingsView().toolbar(.hidden, for: .tabBar)
-                    .tag(2)
-            }
             ZStack {
                 HStack{
-                    ForEach((TabbedItemsMaster.allCases), id: \.self){ item in
-                        Button{
-                            selectedTab = item.rawValue
-                        } label: {
+                    ForEach((TabbedItemsMaster.allCases), id: \.self) { item in
+                            Button {
+                                selectedTab = item.rawValue
+                            } label: {
+                                
                             CustomTabItem(imageName: item.iconName, title: item.title, isActive: (selectedTab == item.rawValue))
-                        }
+                            }
                     }
                 }
                 .padding(6)
             }
             .frame(height: 70)
             .background(.ultraThinMaterial)
+            .opacity(isPressFullScreen ? 0 : 1)
             .cornerRadius(35)
             .padding(.horizontal, 26)
-        }
+        }.ignoresSafeArea(.keyboard)
     }
 }
 
@@ -92,8 +100,4 @@ extension MasterTabBar{
         .background(isActive ? .white.opacity(0.6) : .clear)
         .cornerRadius(30)
     }
-}
-
-#Preview {
-    MasterTabBar()
 }

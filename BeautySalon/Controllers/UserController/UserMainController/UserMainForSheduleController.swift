@@ -1,5 +1,5 @@
 //
-//  ClientMainForSheduleController.swift
+//  UserMainForSheduleController.swift
 //  BeautyMasters
 //
 //  Created by Евгений Полтавец on 03/10/2024.
@@ -9,56 +9,58 @@ import SwiftUI
 
 struct UserMainForSheduleController: View {
     
-    //  СЛЕВА КНОПКА ВЫЙТИ С ПРАВА НАСТРОЙКИ ПОМЕНЯТЬ НОМЕР ИМЯ
-    //    ЗДЕСЬ ПОЛУЧАЕМ ВСЕХ МАСТЕРОВ ЭТОГО САЛОНА
-    //    ПЕРЕХОЖИМ К МАСТЕРУ ЧТОБ ЗАПИСАТСЯ
-    //    ГДЕ ПРОСМОТРЕТЬ ПОРТФОЛИО МАСТЕРА?
-    
     @EnvironmentObject var coordinator: CoordinatorView
-    
-    
+    @StateObject  var clientViewModel: ClientViewModel
+    @State private var isShowSheet: Bool = false
+   
     var body: some View {
-        
-        VStack {
+        GeometryReader { geo in
             
-            Text("Hello, World!")
-            
-        }.createBackgrounfFon()
-            .toolbar(content: {
-                ToolbarItem(placement: .topBarLeading) {
-                    
-                    Button(action: {
-                        coordinator.pop()
-                    }, label: {
-                        HStack(spacing: -8) {
-                            Image(systemName: "arrow.left.to.line.compact")
-                                .font(.system(size: 18))
-                            Text("Back")
-                            
-                        }.foregroundStyle(Color.white)
-                    })
+            VStack(alignment: .center, spacing: 0) {
+                
+                VStack {
+                    User_AdminViewProfile(clientViewModel: clientViewModel)
+                }.padding(.bottom, -10)
+                
+                VStack {
+                    UserMainSelectedMaster(clientViewModel: clientViewModel)
                 }
-            })
-            .foregroundStyle(Color.white)
-            .tint(.yellow)
-            .toolbar(content: {
-                ToolbarItem(placement: .topBarTrailing) {
-                    
-                    Button(action: {
-                        coordinator.pop()
-                    }, label: {
-                        HStack(spacing: -8) {
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 18))
-                        }.foregroundStyle(Color.white)
-                    })
-                }
-            })
-            .foregroundStyle(Color.white)
-            .tint(.yellow)
-    }
-}
+                
+            }.background(Color.init(hex: "#3e5b47").opacity(0.9))
+                .sheet(isPresented: $isShowSheet, content: {
+                    UserSettings(clientViewModel: clientViewModel)
+                        .presentationDetents([.height(320)])
+                        .interactiveDismissDisabled()
+                })
+                .toolbar(content: {
+                    ToolbarItem(placement: .topBarLeading) {
+                        TabBarButtonBack {
+                            coordinator.pop()
+                        }
+                    }
+                })
+                .foregroundStyle(Color.white)
+                .tint(.yellow)
+                .toolbar(content: {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {isShowSheet = true} label: {
+                            HStack(spacing: -8) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.system(size: 18))
+                            }.foregroundStyle(Color.white)
+                        }
 
-#Preview {
-    UserMainForSheduleController()
+                    }
+                })
+                .foregroundStyle(Color.white)
+                .tint(.yellow)
+                .task {
+                    await clientViewModel.fetchAllMasters_FromAdmin()
+                }
+        }.refreshable {
+            Task {
+                await clientViewModel.fetchAllMasters_FromAdmin()
+            }
+        }
+    }
 }
